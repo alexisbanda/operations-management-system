@@ -76,11 +76,15 @@ const JobForm: React.FC<{
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        const parsedHours = parseFloat(String(formData.actual_hours));
+        const parsedPrice = parseFloat(String(formData.invoiced_price));
+
         const dataToSave = {
             ...formData,
             job_date: new Date(formData.job_date), // Convert string back to Date object
-            actual_hours: formData.actual_hours ? parseFloat(String(formData.actual_hours)) : undefined,
-            invoiced_price: formData.invoiced_price ? parseFloat(String(formData.invoiced_price)) : undefined,
+            actual_hours: isNaN(parsedHours) ? null : parsedHours,
+            invoiced_price: isNaN(parsedPrice) ? null : parsedPrice,
         };
         onSave(dataToSave);
     };
