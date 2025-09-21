@@ -1,0 +1,5 @@
+{
+  "name": "Sistema de Gestión de Operaciones (SGO)",
+  "description": "Una aplicación web para transformar y optimizar la gestión de operaciones de limpieza. Permite administrar recursos, estimar tiempos de trabajo, asignar equipos y analizar la rentabilidad de cada servicio.",
+  "requestFramePermissions": []
+}
