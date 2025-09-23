@@ -10,6 +10,8 @@ const ClientForm: React.FC<{ item: Partial<Client> | null; onSave: (data: any) =
     const [formData, setFormData] = useState({
         name: item?.name || '',
         contact_info: item?.contact_info || '',
+        phone: item?.phone || '',
+        email: item?.email || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +33,14 @@ const ClientForm: React.FC<{ item: Partial<Client> | null; onSave: (data: any) =
                 <label className="block text-sm font-medium text-gray-700">Información de Contacto</label>
                 <input type="text" name="contact_info" value={formData.contact_info} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
             </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
+            </div>
             <div className="flex justify-end gap-4 mt-6">
                 <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Cancelar</button>
                 <button type="submit" className="bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-secondary">Guardar</button>
@@ -44,6 +54,7 @@ const BuildingForm: React.FC<{ item: Partial<Building> | null; clients: Client[]
         name: item?.name || '',
         address: item?.address || '',
         client_ids: item?.client_ids || [],
+        access_code: item?.access_code || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +62,7 @@ const BuildingForm: React.FC<{ item: Partial<Building> | null; clients: Client[]
     };
 
     const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+        const selectedOptions = Array.from(e.target.selectedOptions, option => (option as HTMLOptionElement).value);
         setFormData(prev => ({ ...prev, client_ids: selectedOptions }));
     };
 
@@ -69,6 +80,10 @@ const BuildingForm: React.FC<{ item: Partial<Building> | null; clients: Client[]
             <div>
                 <label className="block text-sm font-medium text-gray-700">Dirección</label>
                 <input type="text" name="address" value={formData.address} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Código de Acceso</label>
+                <input type="text" name="access_code" value={formData.access_code} onChange={handleChange} placeholder="Código para acceder al edificio" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700">Clientes Asociados</label>
@@ -96,6 +111,7 @@ const UnitForm: React.FC<{ item: Partial<Unit> | null; buildings: Building[]; on
         floor_type: item?.floor_type || '',
         has_large_windows: item?.has_large_windows || false,
         fixed_price: item?.fixed_price || 0,
+        access_code: item?.access_code || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -147,6 +163,10 @@ const UnitForm: React.FC<{ item: Partial<Unit> | null; buildings: Building[]; on
                     <label className="block text-sm font-medium text-gray-700">Precio Fijo ($)</label>
                     <input type="number" step="0.01" name="fixed_price" value={formData.fixed_price} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
                 </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Código de Acceso</label>
+                    <input type="text" name="access_code" value={formData.access_code} onChange={handleChange} placeholder="Código para acceder a la unidad" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
+                </div>
                 <div className="flex items-center pt-6">
                     <input type="checkbox" name="has_large_windows" checked={formData.has_large_windows} onChange={handleChange} className="h-4 w-4 text-brand-primary border-gray-300 rounded focus:ring-brand-secondary" />
                     <label className="ml-2 block text-sm text-gray-900">Tiene ventanales grandes</label>
@@ -197,7 +217,7 @@ const TeamForm: React.FC<{ item: Partial<Team> | null; employees: Employee[]; on
     };
     
     const handleEmployeeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+        const selectedOptions = Array.from(e.target.selectedOptions, option => (option as HTMLOptionElement).value);
         setFormData(prev => ({ ...prev, employee_ids: selectedOptions }));
     };
 
@@ -467,9 +487,9 @@ export const Configuration: React.FC<ConfigurationProps> = (props) => {
             case 'engine':
                 return <EstimationSettings config={config} onSave={onSaveConfig} />;
             case 'clients':
-                return <CrudSection title="Clientes" data={clients} columns={[{ key: 'name', label: 'Nombre' }, { key: 'contact_info', label: 'Contacto' }]} onAdd={handleOpenModal} onEdit={handleOpenModal} onDelete={handleDelete} />;
+                return <CrudSection title="Clientes" data={clients} columns={[{ key: 'name', label: 'Nombre' }, { key: 'contact_info', label: 'Contacto' }, { key: 'phone', label: 'Teléfono' }, { key: 'email', label: 'Email' }]} onAdd={handleOpenModal} onEdit={handleOpenModal} onDelete={handleDelete} />;
             case 'buildings':
-                return <CrudSection title="Edificios" data={buildings} columns={[{ key: 'name', label: 'Nombre' }, { key: 'address', label: 'Dirección' }]} onAdd={handleOpenModal} onEdit={handleOpenModal} onDelete={handleDelete} />;
+                return <CrudSection title="Edificios" data={buildings} columns={[{ key: 'name', label: 'Nombre' }, { key: 'address', label: 'Dirección' }, { key: 'access_code', label: 'Código Acceso' }]} onAdd={handleOpenModal} onEdit={handleOpenModal} onDelete={handleDelete} />;
             case 'units':
                 return <CrudSection 
                             title="Unidades" 
@@ -479,7 +499,8 @@ export const Configuration: React.FC<ConfigurationProps> = (props) => {
                                 { key: 'buildingName', label: 'Edificio' },
                                 { key: 'clientNames', label: 'Cliente(s)' },
                                 { key: 'square_meters', label: 'm²' }, 
-                                { key: 'fixed_price', label: 'Precio Fijo' }
+                                { key: 'fixed_price', label: 'Precio Fijo' },
+                                { key: 'access_code', label: 'Código Acceso' }
                             ]} 
                             onAdd={handleOpenModal} 
                             onEdit={handleOpenModal} 

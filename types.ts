@@ -30,6 +30,8 @@ export interface Client {
   id: string;
   name: string;
   contact_info: string;
+  phone: string;
+  email: string;
 }
 
 export interface Building {
@@ -37,6 +39,7 @@ export interface Building {
   name: string;
   address: string;
   client_ids: string[];
+  access_code: string;
 }
 
 export interface Unit {
@@ -49,6 +52,7 @@ export interface Unit {
   floor_type: string;
   has_large_windows: boolean;
   fixed_price: number;
+  access_code: string;
 }
 
 export interface CleaningJob {
