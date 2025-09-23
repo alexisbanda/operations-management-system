@@ -100,6 +100,12 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         if (currentUser) {
             fetchData();
+            // Set initial page based on user role
+            if (currentUser.role === UserRole.WORKER) {
+                setCurrentPage('planner');
+            } else {
+                setCurrentPage('dashboard');
+            }
         }
     }, [currentUser]);
 
@@ -217,11 +223,14 @@ const AppContent: React.FC = () => {
         }
         switch (currentPage) {
             case 'dashboard':
+                if (currentUser?.role === UserRole.WORKER) {
+                    return <div>Acceso denegado</div>;
+                }
                 return <Dashboard jobs={jobs} units={units} buildings={buildings} employees={employees} config={config} />;
             case 'planner':
-                return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} />;
+                return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} currentUser={currentUser} />;
             case 'reports':
-                return <Reports jobs={jobs} units={units} config={config} clients={clients} buildings={buildings}/>;
+                return <Reports jobs={jobs} units={units} config={config} clients={clients} buildings={buildings} currentUser={currentUser}/>;
             case 'config':
                 if (currentUser?.role === UserRole.ADMIN) {
                     return <Configuration 
@@ -239,6 +248,9 @@ const AppContent: React.FC = () => {
                 }
                 return <div>Acceso denegado</div>;
             default:
+                if (currentUser?.role === UserRole.WORKER) {
+                    return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} currentUser={currentUser} />;
+                }
                 return <Dashboard jobs={jobs} units={units} buildings={buildings} employees={employees} config={config}/>;
         }
     };

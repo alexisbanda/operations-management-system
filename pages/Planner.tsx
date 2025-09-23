@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CleaningJob, Unit, Employee, SystemConfig, JobStatus, Team, Building } from '../types';
+import { CleaningJob, Unit, Employee, SystemConfig, JobStatus, Team, Building, User, UserRole } from '../types';
 import { Modal } from '../components/Modal';
 
 interface PlannerProps {
@@ -11,6 +11,7 @@ interface PlannerProps {
   config: SystemConfig;
   onAddJob: (jobData: Omit<CleaningJob, 'id' | 'estimated_hours'>) => Promise<boolean>;
   onUpdateJob: (jobId: string, updates: Partial<CleaningJob>) => Promise<boolean>;
+  currentUser: User | null;
 }
 
 
@@ -21,7 +22,8 @@ const JobForm: React.FC<{
     teams: Team[];
     onSave: (data: any) => void;
     onCancel: () => void;
-}> = ({ job, units, employees, teams, onSave, onCancel }) => {
+    currentUser: User | null;
+}> = ({ job, units, employees, teams, onSave, onCancel, currentUser }) => {
     
     const formatDateForInput = (date: Date): string => {
         const year = date.getFullYear();
@@ -59,7 +61,7 @@ const JobForm: React.FC<{
         const newAssignedTeamIds = new Set<string>();
 
         selectedOptions.forEach(option => {
-            const value = option.value;
+            const value = (option as HTMLOptionElement).value;
             if (value.startsWith('team-')) {
                 const teamId = value.replace('team-', '');
                 const team = teams.find(t => t.id === teamId);
@@ -91,42 +93,54 @@ const JobForm: React.FC<{
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label htmlFor="unit_id" className="block text-sm font-medium text-gray-700">Unidad</label>
-                <select id="unit_id" name="unit_id" value={formData.unit_id} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary">
-                    <option value="">Seleccione una unidad</option>
-                    {units.map(unit => (
-                        <option key={unit.id} value={unit.id}>{unit.name_identifier}</option>
-                    ))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="job_date" className="block text-sm font-medium text-gray-700">Fecha y Hora del Servicio</label>
-                <input type="datetime-local" id="job_date" name="job_date" value={formData.job_date} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
-            </div>
-            <div>
-                <label htmlFor="assigned_team" className="block text-sm font-medium text-gray-700">Equipo Asignado</label>
-                <select 
-                    id="assigned_team" 
-                    name="assigned_team" 
-                    multiple 
-                    value={formData.assigned_team} 
-                    onChange={handleAssignmentChange} 
-                    required 
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary h-40"
-                >
-                    <optgroup label="Equipos">
-                        {teams.map(team => (
-                            <option key={`team-${team.id}`} value={`team-${team.id}`}>{team.name}</option>
-                        ))}
-                    </optgroup>
-                    <optgroup label="Empleados Individuales">
-                        {employees.map(emp => (
-                            <option key={emp.id} value={emp.id}>{emp.name}</option>
-                        ))}
-                    </optgroup>
-                </select>
-            </div>
+            {currentUser?.role !== UserRole.WORKER && (
+                <>
+                    <div>
+                        <label htmlFor="unit_id" className="block text-sm font-medium text-gray-700">Unidad</label>
+                        <select id="unit_id" name="unit_id" value={formData.unit_id} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary">
+                            <option value="">Seleccione una unidad</option>
+                            {units.map(unit => (
+                                <option key={unit.id} value={unit.id}>{unit.name_identifier}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="job_date" className="block text-sm font-medium text-gray-700">Fecha y Hora del Servicio</label>
+                        <input type="datetime-local" id="job_date" name="job_date" value={formData.job_date} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" />
+                    </div>
+                    <div>
+                        <label htmlFor="assigned_team" className="block text-sm font-medium text-gray-700">Equipo Asignado</label>
+                        <select 
+                            id="assigned_team" 
+                            name="assigned_team" 
+                            multiple 
+                            value={formData.assigned_team} 
+                            onChange={handleAssignmentChange} 
+                            required 
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary h-40"
+                        >
+                            <optgroup label="Equipos">
+                                {teams.map(team => (
+                                    <option key={`team-${team.id}`} value={`team-${team.id}`}>{team.name}</option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Empleados Individuales">
+                                {employees.map(emp => (
+                                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                                ))}
+                            </optgroup>
+                        </select>
+                    </div>
+                </>
+            )}
+            {currentUser?.role === UserRole.WORKER && job?.id && (
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-700 mb-2">Información del Trabajo</h4>
+                    <p><strong>Unidad:</strong> {units.find(u => u.id === formData.unit_id)?.name_identifier}</p>
+                    <p><strong>Fecha:</strong> {new Date(formData.job_date).toLocaleString()}</p>
+                    <p><strong>Estado:</strong> {formData.status}</p>
+                </div>
+            )}
             <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notas</label>
                 <textarea 
@@ -139,7 +153,7 @@ const JobForm: React.FC<{
                     placeholder="Añadir comentarios o detalles específicos del servicio..."
                 />
             </div>
-            {job?.id && (
+            {job?.id && currentUser?.role !== UserRole.WORKER && (
                  <div>
                     <label htmlFor="status" className="block text-sm font-medium text-gray-700">Estado</label>
                     <select id="status" name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary">
@@ -149,7 +163,7 @@ const JobForm: React.FC<{
                     </select>
                 </div>
             )}
-             {job?.id && formData.status === JobStatus.COMPLETED && (
+             {job?.id && formData.status === JobStatus.COMPLETED && currentUser?.role !== UserRole.WORKER && (
                 <div className="grid grid-cols-2 gap-4 border-t pt-4">
                     <div>
                         <label htmlFor="actual_hours" className="block text-sm font-medium text-gray-700">Horas Reales</label>
@@ -163,7 +177,9 @@ const JobForm: React.FC<{
             )}
             <div className="flex justify-end gap-4 mt-6">
                 <button type="button" onClick={onCancel} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">Cancelar</button>
-                <button type="submit" className="bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-secondary transition-colors">Guardar</button>
+                <button type="submit" className="bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-secondary transition-colors">
+                    {currentUser?.role === UserRole.WORKER ? 'Actualizar Notas' : 'Guardar'}
+                </button>
             </div>
         </form>
     );
@@ -201,7 +217,7 @@ const useMediaQuery = (query: string): boolean => {
     return matches;
 };
 
-export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams, buildings, onAddJob, onUpdateJob }) => {
+export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams, buildings, onAddJob, onUpdateJob, currentUser }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedJob, setSelectedJob] = useState<CleaningJob | null>(null);
     const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -347,9 +363,11 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
                     </div>
                 )}
             </div>
-            <button onClick={() => handleOpenModal()} className="bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-secondary transition-colors shadow-md">
-                + Agendar Servicio
-            </button>
+            {currentUser?.role !== UserRole.WORKER && (
+                <button onClick={() => handleOpenModal()} className="bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-secondary transition-colors shadow-md">
+                    + Agendar Servicio
+                </button>
+            )}
         </div>
     );
 
@@ -440,7 +458,7 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={selectedJob ? "Editar Servicio" : "Agendar Nuevo Servicio"}>
-                <JobForm job={selectedJob} units={units} employees={employees} teams={teams} onSave={handleSaveJob} onCancel={handleCloseModal} />
+                <JobForm job={selectedJob} units={units} employees={employees} teams={teams} onSave={handleSaveJob} onCancel={handleCloseModal} currentUser={currentUser} />
             </Modal>
         </div>
     );

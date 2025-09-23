@@ -44,12 +44,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, currentPage, onNavigate,
         </div>
         <nav className="flex-1 p-4">
           <ul>
-            <NavItem
-              icon={<DashboardIcon />}
-              label="Dashboard"
-              isActive={currentPage === 'dashboard'}
-              onClick={() => onNavigate('dashboard')}
-            />
+            {user.role !== UserRole.WORKER && (
+              <NavItem
+                icon={<DashboardIcon />}
+                label="Dashboard"
+                isActive={currentPage === 'dashboard'}
+                onClick={() => onNavigate('dashboard')}
+              />
+            )}
             <NavItem
               icon={<PlannerIcon />}
               label="Planificador"

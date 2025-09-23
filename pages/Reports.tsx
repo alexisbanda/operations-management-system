@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
-import { CleaningJob, Unit, SystemConfig, JobStatus, Client, Building } from '../types';
+import { CleaningJob, Unit, SystemConfig, JobStatus, Client, Building, User, UserRole } from '../types';
 
 interface ReportsProps {
   jobs: CleaningJob[];
@@ -8,6 +8,7 @@ interface ReportsProps {
   config: SystemConfig;
   clients: Client[];
   buildings: Building[];
+  currentUser: User | null;
 }
 
 type GroupBy = 'service' | 'client' | 'building';
@@ -27,7 +28,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 
-export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, buildings }) => {
+export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, buildings, currentUser }) => {
     const [groupBy, setGroupBy] = useState<GroupBy>('service');
     const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
@@ -176,6 +177,8 @@ export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, 
     }
     
     const renderTable = () => {
+        const isWorker = currentUser?.role === UserRole.WORKER;
+        
         if (groupBy === 'service') {
             return (
                  <div className="overflow-x-auto">
@@ -184,9 +187,9 @@ export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, 
                             <tr>
                                 <th className="px-6 py-3 whitespace-nowrap">Fecha</th>
                                 <th className="px-6 py-3 whitespace-nowrap">Unidad</th>
-                                <th className="px-6 py-3 whitespace-nowrap">Ingreso</th>
-                                <th className="px-6 py-3 whitespace-nowrap">Costo</th>
-                                <th className="px-6 py-3 whitespace-nowrap">Rentabilidad</th>
+                                {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Ingreso</th>}
+                                {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Costo</th>}
+                                {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Rentabilidad</th>}
                                 <th className="px-6 py-3 whitespace-nowrap">Productividad (Est/Real)</th>
                             </tr>
                         </thead>
@@ -195,9 +198,9 @@ export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, 
                                 <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">{row.date}</td>
                                     <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{row.unit}</td>
-                                    <td className="px-6 py-4 text-green-600 whitespace-nowrap">${row.revenue.toFixed(2)}</td>
-                                    <td className="px-6 py-4 text-red-600 whitespace-nowrap">${row.cost.toFixed(2)}</td>
-                                    <td className={`px-6 py-4 font-bold whitespace-nowrap ${row.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>${row.profit.toFixed(2)}</td>
+                                    {!isWorker && <td className="px-6 py-4 text-green-600 whitespace-nowrap">${row.revenue.toFixed(2)}</td>}
+                                    {!isWorker && <td className="px-6 py-4 text-red-600 whitespace-nowrap">${row.cost.toFixed(2)}</td>}
+                                    {!isWorker && <td className={`px-6 py-4 font-bold whitespace-nowrap ${row.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>${row.profit.toFixed(2)}</td>}
                                     <td className="px-6 py-4 whitespace-nowrap">{row.productivity}</td>
                                 </tr>
                             ))}
@@ -214,9 +217,9 @@ export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, 
                         <tr>
                             <th className="px-6 py-3 whitespace-nowrap">{groupTitle}</th>
                             <th className="px-6 py-3 whitespace-nowrap">N° Servicios</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Ingreso Total</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Costo Total</th>
-                            <th className="px-6 py-3 whitespace-nowrap">Rentabilidad Total</th>
+                            {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Ingreso Total</th>}
+                            {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Costo Total</th>}
+                            {!isWorker && <th className="px-6 py-3 whitespace-nowrap">Rentabilidad Total</th>}
                             <th className="px-6 py-3 whitespace-nowrap">Productividad Promedio</th>
                         </tr>
                     </thead>
@@ -225,9 +228,9 @@ export const Reports: React.FC<ReportsProps> = ({ jobs, units, config, clients, 
                             <tr key={row.id} className="bg-white border-b hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{row.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">{row.jobCount}</td>
-                                <td className="px-6 py-4 text-green-600 whitespace-nowrap">${row.revenue.toFixed(2)}</td>
-                                <td className="px-6 py-4 text-red-600 whitespace-nowrap">${row.cost.toFixed(2)}</td>
-                                <td className={`px-6 py-4 font-bold whitespace-nowrap ${row.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>${row.profit.toFixed(2)}</td>
+                                {!isWorker && <td className="px-6 py-4 text-green-600 whitespace-nowrap">${row.revenue.toFixed(2)}</td>}
+                                {!isWorker && <td className="px-6 py-4 text-red-600 whitespace-nowrap">${row.cost.toFixed(2)}</td>}
+                                {!isWorker && <td className={`px-6 py-4 font-bold whitespace-nowrap ${row.profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>${row.profit.toFixed(2)}</td>}
                                 <td className="px-6 py-4 whitespace-nowrap">{row.productivity}</td>
                             </tr>
                         ))}
