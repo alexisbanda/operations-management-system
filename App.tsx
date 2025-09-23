@@ -149,6 +149,19 @@ const AppContent: React.FC = () => {
             return false;
         }
     };
+
+    const handleDeleteJob = async (jobId: string) => {
+        try {
+            await api.deleteCleaningJob(jobId);
+            setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+            addToast('Servicio eliminado correctamente', 'success');
+            return true;
+        } catch (error) {
+            console.error("Failed to delete job", error);
+            addToast('Error al eliminar el servicio', 'error');
+            return false;
+        }
+    };
     
     // --- GENERIC CRUD HANDLERS ---
     const getApiForType = (type: string) => {
@@ -228,7 +241,7 @@ const AppContent: React.FC = () => {
                 }
                 return <Dashboard jobs={jobs} units={units} buildings={buildings} employees={employees} config={config} />;
             case 'planner':
-                return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} currentUser={currentUser} />;
+                return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} onDeleteJob={handleDeleteJob} currentUser={currentUser} />;
             case 'reports':
                 return <Reports jobs={jobs} units={units} config={config} clients={clients} buildings={buildings} currentUser={currentUser}/>;
             case 'config':
@@ -249,7 +262,7 @@ const AppContent: React.FC = () => {
                 return <div>Acceso denegado</div>;
             default:
                 if (currentUser?.role === UserRole.WORKER) {
-                    return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} currentUser={currentUser} />;
+                    return <Planner jobs={jobs} units={units} employees={employees} teams={teams} buildings={buildings} config={config} onAddJob={handleAddNewJob} onUpdateJob={handleUpdateJob} onDeleteJob={handleDeleteJob} currentUser={currentUser} />;
                 }
                 return <Dashboard jobs={jobs} units={units} buildings={buildings} employees={employees} config={config}/>;
         }

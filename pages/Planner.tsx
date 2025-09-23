@@ -11,6 +11,7 @@ interface PlannerProps {
   config: SystemConfig;
   onAddJob: (jobData: Omit<CleaningJob, 'id' | 'estimated_hours'>) => Promise<boolean>;
   onUpdateJob: (jobId: string, updates: Partial<CleaningJob>) => Promise<boolean>;
+  onDeleteJob: (jobId: string) => Promise<boolean>;
   currentUser: User | null;
 }
 
@@ -217,7 +218,7 @@ const useMediaQuery = (query: string): boolean => {
     return matches;
 };
 
-export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams, buildings, onAddJob, onUpdateJob, currentUser }) => {
+export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams, buildings, onAddJob, onUpdateJob, onDeleteJob, currentUser }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedJob, setSelectedJob] = useState<CleaningJob | null>(null);
     const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -248,6 +249,19 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
             await onAddJob(jobData);
         }
         handleCloseModal();
+    };
+
+    const handleDeleteJob = async (jobId: string) => {
+        const job = jobs.find(j => j.id === jobId);
+        const unit = units.find(u => u.id === job?.unit_id);
+        const unitName = unit?.name_identifier || 'N/A';
+        const jobDate = job?.job_date ? new Date(job.job_date).toLocaleDateString() : 'N/A';
+
+        const confirmMessage = `¿Está seguro de que desea eliminar este trabajo?\n\nUnidad: ${unitName}\nFecha: ${jobDate}\n\nEsta acción no se puede deshacer.`;
+        
+        if (window.confirm(confirmMessage)) {
+            await onDeleteJob(jobId);
+        }
     };
     
     // --- Calendar View Logic ---
@@ -422,9 +436,9 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
                             const time = job.job_date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
                             return (
-                                <div key={job.id} onClick={() => handleOpenModal(job)} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-l-4" style={{borderColor: statusColors.dot.replace('bg-','').replace('-500','')}}>
+                                <div key={job.id} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow border-l-4" style={{borderColor: statusColors.dot.replace('bg-','').replace('-500','')}}>
                                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                                        <div className="flex-1">
+                                        <div className="flex-1 cursor-pointer" onClick={() => handleOpenModal(job)}>
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                                                 <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColors.bg} ${statusColors.text} mb-2 sm:mb-0 self-start`}>{job.status}</span>
                                                 <div>
@@ -437,6 +451,28 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
                                         <div className="text-left sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
                                             <p className="font-semibold text-gray-700">Equipo Asignado:</p>
                                             <p className="text-sm text-gray-600">{assignedEmployees || 'Sin asignar'}</p>
+                                            {currentUser?.role === UserRole.ADMIN && (
+                                                <div className="flex gap-2 mt-3 justify-start sm:justify-end">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenModal(job);
+                                                        }}
+                                                        className="bg-blue-500 text-white px-3 py-1 text-xs rounded hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteJob(job.id);
+                                                        }}
+                                                        className="bg-red-500 text-white px-3 py-1 text-xs rounded hover:bg-red-600 transition-colors"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

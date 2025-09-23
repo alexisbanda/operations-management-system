@@ -46,6 +46,11 @@ export const updateCleaningJob = async (jobId: string, updates: Partial<Cleaning
     return { id: jobId, ...updates } as CleaningJob;
 };
 
+export const deleteCleaningJob = async (jobId: string): Promise<{ success: true }> => {
+    await deleteDoc(doc(db, 'jobs', jobId));
+    return { success: true };
+};
+
 export const getSystemConfig = async (): Promise<SystemConfig> => {
     // Obtenemos la configuración desde un único documento en la colección 'settings'.
     const configDocRef = doc(db, 'settings', 'main');
