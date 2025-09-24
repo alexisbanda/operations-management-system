@@ -126,12 +126,21 @@ const AppContent: React.FC = () => {
     
     const handleAddNewJob = async (jobData: Omit<CleaningJob, 'id' | 'estimated_hours'>) => {
         try {
-            const newJob = await api.addCleaningJob(jobData);
-            setJobs(prevJobs => [...prevJobs, newJob].sort((a, b) => a.job_date.getTime() - b.job_date.getTime()));
-            addToast('Servicio agendado correctamente', 'success');
+            // Use the new recurrent jobs function
+            const newJobs = await api.addRecurrentCleaningJobs(jobData);
+            
+            // Add all new jobs to the state
+            setJobs(prevJobs => [...prevJobs, ...newJobs].sort((a, b) => a.job_date.getTime() - b.job_date.getTime()));
+            
+            if (newJobs.length === 1) {
+                addToast('Servicio agendado correctamente', 'success');
+            } else {
+                addToast(`${newJobs.length} servicios recurrentes agendados correctamente`, 'success');
+            }
+            
             return true;
         } catch (error) {
-            console.error("Failed to add new job", error);
+            console.error("Failed to add new job(s)", error);
             addToast('Error al agendar el servicio', 'error');
             return false;
         }

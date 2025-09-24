@@ -1,6 +1,6 @@
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, DocumentData, getDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
-import { CleaningJob, SystemConfig, User } from '../types';
+import { CleaningJob, SystemConfig, User, JobRecurrence } from '../types';
 import { mockClients, mockBuildings, mockUnits, mockEmployees, mockTeams, mockCleaningJobs } from './mockApi';
 
 // --- Funciones de Firestore ---
@@ -40,8 +40,13 @@ export const addCleaningJob = async (jobData: Omit<CleaningJob, 'id' | 'estimate
 };
 
 export const updateCleaningJob = async (jobId: string, updates: Partial<CleaningJob>): Promise<CleaningJob> => {
+    // Filter out undefined values to prevent Firestore errors
+    const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+    
     const jobRef = doc(db, 'jobs', jobId);
-    await updateDoc(jobRef, updates);
+    await updateDoc(jobRef, cleanUpdates);
     // Devolvemos un objeto combinado para actualizar el estado local
     return { id: jobId, ...updates } as CleaningJob;
 };
@@ -49,6 +54,76 @@ export const updateCleaningJob = async (jobId: string, updates: Partial<Cleaning
 export const deleteCleaningJob = async (jobId: string): Promise<{ success: true }> => {
     await deleteDoc(doc(db, 'jobs', jobId));
     return { success: true };
+};
+
+// Helper function to generate dates based on recurrence
+const generateRecurrentDates = (startDate: Date, endDate: Date, recurrence: JobRecurrence): Date[] => {
+    const dates: Date[] = [];
+    const current = new Date(startDate);
+
+    while (current <= endDate) {
+        dates.push(new Date(current));
+
+        switch (recurrence) {
+            case JobRecurrence.DAILY:
+                current.setDate(current.getDate() + 1);
+                break;
+            case JobRecurrence.WEEKLY:
+                current.setDate(current.getDate() + 7);
+                break;
+            case JobRecurrence.BIWEEKLY:
+                current.setDate(current.getDate() + 14);
+                break;
+            case JobRecurrence.MONTHLY:
+                current.setMonth(current.getMonth() + 1);
+                break;
+            default:
+                return dates; // Should not reach here for recurrent jobs
+        }
+    }
+
+    return dates;
+};
+
+// Function to create multiple recurrent jobs
+export const addRecurrentCleaningJobs = async (jobData: Omit<CleaningJob, 'id' | 'estimated_hours'>): Promise<CleaningJob[]> => {
+    const { recurrence, recurrence_end_date, ...baseJobData } = jobData;
+    
+    if (!recurrence || recurrence === JobRecurrence.NONE || !recurrence_end_date) {
+        // Single job, use existing function
+        const singleJob = await addCleaningJob(baseJobData);
+        return [singleJob];
+    }
+
+    // Generate group ID for this series of recurrent jobs
+    const recurrence_group_id = `recurrent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate all dates for the recurrence
+    const dates = generateRecurrentDates(jobData.job_date, recurrence_end_date, recurrence);
+    
+    // Create batch to add all jobs at once
+    const batch = writeBatch(db);
+    const jobsToCreate: CleaningJob[] = [];
+    
+    dates.forEach(date => {
+        const jobRef = doc(collection(db, 'jobs'));
+        const jobWithRecurrence = {
+            ...baseJobData,
+            job_date: date,
+            recurrence,
+            recurrence_end_date,
+            recurrence_group_id,
+            estimated_hours: 0 // Will be calculated if needed
+        };
+        
+        batch.set(jobRef, jobWithRecurrence);
+        jobsToCreate.push({ id: jobRef.id, ...jobWithRecurrence } as CleaningJob);
+    });
+    
+    // Commit the batch
+    await batch.commit();
+    
+    return jobsToCreate;
 };
 
 export const getSystemConfig = async (): Promise<SystemConfig> => {

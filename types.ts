@@ -10,6 +10,14 @@ export enum JobStatus {
   CANCELED = 'Cancelado',
 }
 
+export enum JobRecurrence {
+  NONE = 'none',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  MONTHLY = 'monthly',
+}
+
 export interface User {
   id: string;
   email: string;
@@ -66,6 +74,9 @@ export interface CleaningJob {
   invoiced_price?: number;
   assigned_team: string[]; // array of employee_ids
   notes?: string;
+  recurrence?: JobRecurrence;
+  recurrence_end_date?: Date;
+  recurrence_group_id?: string; // Para agrupar trabajos de la misma serie recurrente
 }
 
 export interface SystemConfig {

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CleaningJob, Unit, Employee, SystemConfig, JobStatus, Team, Building, User, UserRole } from '../types';
+import { CleaningJob, Unit, Employee, SystemConfig, JobStatus, JobRecurrence, Team, Building, User, UserRole } from '../types';
 import { Modal } from '../components/Modal';
+import { RepeatIcon } from '../components/icons';
 
 interface PlannerProps {
   jobs: CleaningJob[];
@@ -50,6 +51,8 @@ const JobForm: React.FC<{
         status: job?.status || JobStatus.SCHEDULED,
         actual_hours: job?.actual_hours || undefined,
         invoiced_price: job?.invoiced_price || undefined,
+        recurrence: job?.recurrence || JobRecurrence.NONE,
+        recurrence_end_date: job?.recurrence_end_date ? formatDateForInput(job.recurrence_end_date) : '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -88,6 +91,7 @@ const JobForm: React.FC<{
             job_date: new Date(formData.job_date), // Convert string back to Date object
             actual_hours: isNaN(parsedHours) ? null : parsedHours,
             invoiced_price: isNaN(parsedPrice) ? null : parsedPrice,
+            recurrence_end_date: formData.recurrence_end_date ? new Date(formData.recurrence_end_date) : undefined,
         };
         onSave(dataToSave);
     };
@@ -140,6 +144,48 @@ const JobForm: React.FC<{
                     <p><strong>Unidad:</strong> {units.find(u => u.id === formData.unit_id)?.name_identifier}</p>
                     <p><strong>Fecha:</strong> {new Date(formData.job_date).toLocaleString()}</p>
                     <p><strong>Estado:</strong> {formData.status}</p>
+                </div>
+            )}
+            {currentUser?.role !== UserRole.WORKER && !job?.id && (
+                <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium text-gray-700 mb-4">⏱️ Configuración de Periodicidad</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="recurrence" className="block text-sm font-medium text-gray-700">Frecuencia</label>
+                            <select 
+                                id="recurrence" 
+                                name="recurrence" 
+                                value={formData.recurrence} 
+                                onChange={handleChange}
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary"
+                            >
+                                <option value={JobRecurrence.NONE}>Solo una vez</option>
+                                <option value={JobRecurrence.DAILY}>Diario</option>
+                                <option value={JobRecurrence.WEEKLY}>Semanal</option>
+                                <option value={JobRecurrence.BIWEEKLY}>Quincenal</option>
+                                <option value={JobRecurrence.MONTHLY}>Mensual</option>
+                            </select>
+                        </div>
+                        {formData.recurrence !== JobRecurrence.NONE && (
+                            <div>
+                                <label htmlFor="recurrence_end_date" className="block text-sm font-medium text-gray-700">
+                                    Fecha límite <span className="text-red-500">*</span>
+                                </label>
+                                <input 
+                                    type="datetime-local" 
+                                    id="recurrence_end_date" 
+                                    name="recurrence_end_date" 
+                                    value={formData.recurrence_end_date} 
+                                    onChange={handleChange}
+                                    required={formData.recurrence !== JobRecurrence.NONE}
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-brand-secondary focus:border-brand-secondary" 
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Define hasta cuándo se generarán los trabajos recurrentes
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
             <div>
@@ -405,7 +451,13 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
                                     <div key={job.id} onClick={() => handleOpenModal(job)} className="p-1.5 rounded-md bg-brand-light hover:bg-brand-secondary hover:text-white cursor-pointer transition-colors" title={`${time} - ${unit?.name_identifier}`}>
                                          <div className="flex items-center gap-2">
                                             <span className={`w-2 h-2 rounded-full ${getStatusColor(job.status).dot}`}></span>
-                                            <p className="text-xs font-medium text-gray-700 truncate"><span className="font-bold">{time}</span> {unit?.name_identifier || 'Unidad...'}</p>
+                                            <p className="text-xs font-medium text-gray-700 truncate flex items-center gap-1">
+                                                <span className="font-bold">{time}</span> 
+                                                {unit?.name_identifier || 'Unidad...'}
+                                                {job.recurrence && job.recurrence !== JobRecurrence.NONE && (
+                                                    <RepeatIcon className="w-3 h-3 text-blue-600" />
+                                                )}
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -442,8 +494,21 @@ export const Planner: React.FC<PlannerProps> = ({ jobs, units, employees, teams,
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                                                 <span className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColors.bg} ${statusColors.text} mb-2 sm:mb-0 self-start`}>{job.status}</span>
                                                 <div>
-                                                    <p className="font-bold text-brand-primary">{unit?.name_identifier} <span className="font-mono text-sm text-gray-600 font-medium">({time})</span></p>
+                                                    <p className="font-bold text-brand-primary flex items-center gap-2">
+                                                        {unit?.name_identifier}
+                                                        {job.recurrence && job.recurrence !== JobRecurrence.NONE && (
+                                                            <RepeatIcon className="w-4 h-4 text-blue-600" />
+                                                        )}
+                                                        <span className="font-mono text-sm text-gray-600 font-medium">({time})</span>
+                                                    </p>
                                                     <p className="text-sm text-gray-500">{building?.name}</p>
+                                                    {job.recurrence && job.recurrence !== JobRecurrence.NONE && (
+                                                        <p className="text-xs text-blue-600 font-medium">
+                                                            Recurrencia: {job.recurrence === JobRecurrence.DAILY ? 'Diaria' : 
+                                                                          job.recurrence === JobRecurrence.WEEKLY ? 'Semanal' : 
+                                                                          job.recurrence === JobRecurrence.BIWEEKLY ? 'Quincenal' : 'Mensual'}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                             {job.notes && <p className="text-sm text-gray-600 mt-3 p-2 bg-yellow-50 rounded-md border-l-2 border-yellow-300">"{job.notes}"</p>}
